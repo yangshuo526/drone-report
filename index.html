@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>无人机飞行报备</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            railway: {
+              50: '#e8edf5',
+              100: '#c5d0e6',
+              200: '#9eb3d5',
+              300: '#7796c4',
+              400: '#5980b8',
+              500: '#3b6aaa',
+              600: '#2f5a96',
+              700: '#1e4378',
+              800: '#0d2d5a',
+              900: '#001b3d',
+            },
+            railred: {
+              500: '#d7262c',
+              600: '#b91c1c',
+              700: '#991b1b',
+            },
+          },
+          fontFamily: {
+            sans: ['"Noto Sans SC"', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Noto Sans SC', sans-serif; }
+
+    /* 自定义日期时间输入框图标颜色 */
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(20%) sepia(60%) saturate(2000%) hue-rotate(200deg);
+      cursor: pointer;
+    }
+
+    /* 页面加载动画 */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+      animation: fadeInUp 0.5s ease-out forwards;
+    }
+
+    /* 成功提示动画 */
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-100%); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-down {
+      animation: slideDown 0.4s ease-out forwards;
+    }
+
+    /* 模态框遮罩 */
+    .modal-overlay {
+      background: rgba(0, 27, 61, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    /* 打印样式 */
+    @media print {
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- 顶部铁路蓝横条 -->
+  <header class="bg-railway-800 text-white py-4 px-4 shadow-lg">
+    <div class="max-w-lg mx-auto flex items-center justify-center gap-3">
+      <!-- 简易铁路图标 -->
+      <svg class="w-7 h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="6" width="18" height="12" rx="2" />
+        <line x1="7" y1="10" x2="7" y2="14" />
+        <line x1="12" y1="10" x2="12" y2="14" />
+        <line x1="17" y1="10" x2="17" y2="14" />
+        <line x1="1" y1="18" x2="23" y2="18" />
+        <line x1="1" y1="6" x2="23" y2="6" />
+      </svg>
+      <h1 class="text-xl font-bold tracking-wider">无人机飞行报备</h1>
+    </div>
+  </header>
+
+  <!-- 成功提示条 -->
+  <div id="successBanner" class="hidden fixed top-0 left-0 right-0 z-50 bg-green-600 text-white text-center py-3 px-4 shadow-md animate-slide-down">
+    <div class="max-w-lg mx-auto flex items-center justify-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      <span class="font-medium">报备提交成功！</span>
+      <button onclick="hideSuccessBanner()" class="ml-4 hover:text-green-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 主内容区 -->
+  <main class="max-w-lg mx-auto px-4 py-6 animate-fade-in-up">
+
+    <!-- 报备表单卡片 -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <!-- 卡片标题 -->
+      <div class="bg-railway-50 border-b border-railway-100 px-5 py-3">
+        <h2 class="text-base font-semibold text-railway-800 flex items-center gap-2">
+          <svg class="w-4 h-4 text-railway-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm-2-2a1 1 0 10-2 0v3a1 1 0 102 0v-3z" clip-rule="evenodd" />
+          </svg>
+          填写报备信息
+        </h2>
+      </div>
+
+      <form id="reportForm" class="px-5 py-5 space-y-5" novalidate>
+
+        <!-- 姓名 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            姓名 <span class="text-railred-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            placeholder="请输入姓名"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="nameError" class="hidden mt-1 text-xs text-railred-500">请输入姓名</p>
+        </div>
+
+        <!-- 联系方式 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            联系方式 <span class="text-railred-500">*</span>
+          </label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            required
+            placeholder="请输入11位手机号"
+            maxlength="11"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="phoneError" class="hidden mt-1 text-xs text-railred-500">请输入正确的11位手机号</p>
+        </div>
+
+        <!-- 所在线路（非必填） -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            所在线路
+          </label>
+          <select
+            id="line"
+            name="line"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors text-gray-700 bg-white appearance-none"
+            style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22%3E%3Cpath d=%22M6 9l6 6 6-6%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 18px;"
+          >
+            <option value="">请选择线路</option>
+            <option value="沪昆线">沪昆线</option>
+            <option value="皖赣线">皖赣线</option>
+            <option value="鹰厦线">鹰厦线</option>
+            <option value="衢九线">衢九线</option>
+            <option value="杭昌高铁">杭昌高铁</option>
+            <option value="峰福线">峰福线</option>
+            <option value="上联线">上联线</option>
+            <option value="乐德线">乐德线</option>
+            <option value="其他线路">其他线路</option>
+          </select>
+        </div>
+
+        <!-- 无人机型号/编号 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            无人机型号/编号 <span class="text-railred-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="droneModel"
+            name="droneModel"
+            required
+            placeholder="如：大疆 Mavic 3 / SN20240601"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="droneModelError" class="hidden mt-1 text-xs text-railred-500">请输入无人机型号/编号</p>
+        </div>
+
+        <!-- 飞行时间 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            飞行时间 <span class="text-railred-500">*</span>
+          </label>
+          <input
+            type="datetime-local"
+            id="flightTime"
+            name="flightTime"
+            required
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors text-gray-700"
+          />
+          <p id="flightTimeError" class="hidden mt-1 text-xs text-railred-500">请选择飞行时间</p>
+        </div>
+
+        <!-- 地点（省/市/县区/乡镇/村） -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            地点（省/市/县区/乡镇/村） <span class="text-railred-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="location"
+            name="location"
+            required
+            placeholder="如：江西省鹰潭市月湖区xx乡镇xx村"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="locationError" class="hidden mt-1 text-xs text-railred-500">请输入飞行地点（省/市/县区/乡镇/村）</p>
+        </div>
+
+        <!-- 用途 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            用途 <span class="text-railred-500">*</span>
+          </label>
+          <select
+            id="purpose"
+            name="purpose"
+            required
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors text-gray-700 bg-white appearance-none"
+            style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22%3E%3Cpath d=%22M6 9l6 6 6-6%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 18px;"
+          >
+            <option value="" disabled selected>请选择用途</option>
+            <option value="巡检">巡检</option>
+            <option value="测绘">测绘</option>
+            <option value="拍照">拍照</option>
+            <option value="其他">其他</option>
+          </select>
+          <p id="purposeError" class="hidden mt-1 text-xs text-railred-500">请选择用途</p>
+        </div>
+
+        <!-- 作业人员资质 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            作业人员资质 <span class="text-railred-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="certification"
+            name="certification"
+            required
+            placeholder="如：无人机驾驶证编号"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="certificationError" class="hidden mt-1 text-xs text-railred-500">请输入作业人员资质信息</p>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="border-t border-gray-100 pt-4">
+          <!-- 提交按钮 -->
+          <button
+            type="submit"
+            class="w-full bg-railway-700 hover:bg-railway-800 active:bg-railway-900 text-white font-semibold py-3 rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:ring-offset-2"
+          >
+            提交报备
+          </button>
+
+          <!-- 查看已报备记录按钮 -->
+          <button
+            type="button"
+            onclick="openRecordsModal()"
+            class="w-full mt-3 bg-white hover:bg-gray-50 active:bg-gray-100 text-railway-700 font-medium py-2.5 rounded-lg border border-railway-200 transition-colors focus:outline-none focus:ring-2 focus:ring-railway-500 focus:ring-offset-2"
+          >
+            查看已报备记录
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 二维码分享卡片 -->
+    <div class="mt-5 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div class="bg-railway-50 border-b border-railway-100 px-5 py-3">
+        <h2 class="text-base font-semibold text-railway-800 flex items-center gap-2">
+          <svg class="w-4 h-4 text-railway-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+          </svg>
+          扫码报备
+        </h2>
+      </div>
+      <div class="px-5 py-5 text-center">
+        <p class="text-sm text-gray-500 mb-4">使用手机扫描二维码，快速填写报备信息</p>
+        <div id="qrcodeContainer" class="inline-block p-3 bg-white border-2 border-railway-100 rounded-xl shadow-sm"></div>
+        <div class="mt-4 bg-gray-50 rounded-lg px-4 py-2.5 inline-block">
+          <p id="qrUrl" class="text-xs text-railway-600 font-mono break-all select-all"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部标注 -->
+    <footer class="mt-6 mb-4 text-center">
+      <p class="text-xs text-gray-400 tracking-wide">中国铁路南昌局集团有限公司鹰潭工务段</p>
+    </footer>
+  </main>
+
+  <!-- 已报备记录模态框 -->
+  <div id="recordsModal" class="hidden fixed inset-0 z-40 modal-overlay">
+    <div class="flex items-end sm:items-center justify-center min-h-full p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-fade-in-up">
+        <!-- 模态框标题 -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 class="text-lg font-semibold text-railway-800">已报备记录</h3>
+          <button onclick="closeRecordsModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <!-- 记录列表 -->
+        <div id="recordsList" class="flex-1 overflow-y-auto px-5 py-4">
+          <!-- 动态渲染 -->
+        </div>
+        <!-- 底部操作 -->
+        <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+          <span id="recordCount" class="text-sm text-gray-500"></span>
+          <button onclick="clearAllRecords()" class="text-sm text-railred-500 hover:text-railred-600 font-medium transition-colors">
+            清空所有记录
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 无人机飞行报备系统 - 表单页面逻辑
+     * 数据存储使用 localStorage
+     */
+
+    const STORAGE_KEY = 'drone_flight_reports';
+
+    /**
+     * 从 localStorage 读取所有报备记录
+     * @returns {Array} 报备记录数组
+     */
+    function getReports() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch (e) {
+        console.error('读取报备记录失败:', e);
+        return [];
+      }
+    }
+
+    /**
+     * 保存报备记录到 localStorage
+     * @param {Array} reports - 报备记录数组
+     */
+    function saveReports(reports) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+      } catch (e) {
+        console.error('保存报备记录失败:', e);
+      }
+    }
+
+    /**
+     * 手机号格式校验
+     * @param {string} phone - 手机号字符串
+     * @returns {boolean} 是否为合法手机号
+     */
+    function isValidPhone(phone) {
+      return /^1[3-9]\d{9}$/.test(phone);
+    }
+
+    /**
+     * 显示字段错误提示
+     * @param {string} fieldId - 字段ID
+     */
+    function showFieldError(fieldId) {
+      const errorEl = document.getElementById(fieldId + 'Error');
+      const inputEl = document.getElementById(fieldId);
+      if (errorEl) errorEl.classList.remove('hidden');
+      if (inputEl) inputEl.classList.add('border-railred-500', 'ring-1', 'ring-railred-500');
+    }
+
+    /**
+     * 隐藏字段错误提示
+     * @param {string} fieldId - 字段ID
+     */
+    function hideFieldError(fieldId) {
+      const errorEl = document.getElementById(fieldId + 'Error');
+      const inputEl = document.getElementById(fieldId);
+      if (errorEl) errorEl.classList.add('hidden');
+      if (inputEl) inputEl.classList.remove('border-railred-500', 'ring-1', 'ring-railred-500');
+    }
+
+    /**
+     * 显示成功提示横幅
+     */
+    function showSuccessBanner() {
+      const banner = document.getElementById('successBanner');
+      banner.classList.remove('hidden');
+      setTimeout(() => hideSuccessBanner(), 4000);
+    }
+
+    /**
+     * 隐藏成功提示横幅
+     */
+    function hideSuccessBanner() {
+      document.getElementById('successBanner').classList.add('hidden');
+    }
+
+    /**
+     * 表单验证
+     * @returns {boolean} 表单是否通过验证
+     */
+    function validateForm() {
+      let isValid = true;
+      const fields = ['name', 'phone', 'droneModel', 'flightTime', 'location', 'purpose', 'certification'];
+
+      // 先隐藏所有错误
+      fields.forEach(hideFieldError);
+
+      // 逐项验证
+      const name = document.getElementById('name').value.trim();
+      if (!name) { showFieldError('name'); isValid = false; }
+
+      const phone = document.getElementById('phone').value.trim();
+      if (!phone || !isValidPhone(phone)) { showFieldError('phone'); isValid = false; }
+
+      const droneModel = document.getElementById('droneModel').value.trim();
+      if (!droneModel) { showFieldError('droneModel'); isValid = false; }
+
+      const flightTime = document.getElementById('flightTime').value;
+      if (!flightTime) { showFieldError('flightTime'); isValid = false; }
+
+      const location = document.getElementById('location').value.trim();
+      if (!location) { showFieldError('location'); isValid = false; }
+
+      const purpose = document.getElementById('purpose').value;
+      if (!purpose) { showFieldError('purpose'); isValid = false; }
+
+      const certification = document.getElementById('certification').value.trim();
+      if (!certification) { showFieldError('certification'); isValid = false; }
+
+      return isValid;
+    }
+
+    /**
+     * 格式化日期时间为中文可读格式
+     * @param {string} datetimeStr - ISO 格式日期时间字符串
+     * @returns {string} 格式化后的中文日期时间
+     */
+    function formatDateTime(datetimeStr) {
+      if (!datetimeStr) return '--';
+      const d = new Date(datetimeStr);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hour = String(d.getHours()).padStart(2, '0');
+      const minute = String(d.getMinutes()).padStart(2, '0');
+      return `${year}年${month}月${day}日 ${hour}:${minute}`;
+    }
+
+    /**
+     * 表单提交处理
+     * @param {Event} e - 提交事件
+     */
+    function handleSubmit(e) {
+      e.preventDefault();
+
+      if (!validateForm()) {
+        // 滚动到第一个错误字段
+        const firstError = document.querySelector('.border-railred-500');
+        if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // 收集表单数据
+      const report = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        name: document.getElementById('name').value.trim(),
+        line: document.getElementById('line').value,
+        phone: document.getElementById('phone').value.trim(),
+        droneModel: document.getElementById('droneModel').value.trim(),
+        flightTime: document.getElementById('flightTime').value,
+        location: document.getElementById('location').value.trim(),
+        purpose: document.getElementById('purpose').value,
+        certification: document.getElementById('certification').value.trim(),
+        submittedAt: new Date().toISOString(),
+      };
+
+      // 保存到 localStorage
+      const reports = getReports();
+      reports.unshift(report); // 新记录排在前面
+      saveReports(reports);
+
+      // 重置表单
+      document.getElementById('reportForm').reset();
+
+      // 显示成功提示
+      showSuccessBanner();
+
+      // 滚动到顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * 打开已报备记录模态框
+     */
+    function openRecordsModal() {
+      const modal = document.getElementById('recordsModal');
+      const listContainer = document.getElementById('recordsList');
+      const reports = getReports();
+
+      if (reports.length === 0) {
+        listContainer.innerHTML = `
+          <div class="text-center py-12 text-gray-400">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm">暂无报备记录</p>
+          </div>
+        `;
+      } else {
+        listContainer.innerHTML = reports.map((r, index) => `
+          <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 ${index > 0 ? 'mt-0' : ''}">
+            <div class="flex items-start justify-between mb-2">
+              <span class="text-sm font-semibold text-railway-800">${escapeHtml(r.name)}</span>
+              <button onclick="deleteRecord('${r.id}')" class="text-gray-400 hover:text-railred-500 transition-colors p-0.5" title="删除">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+            <div class="space-y-1.5 text-xs text-gray-600">
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">联系方式</span><span>${escapeHtml(r.phone)}</span></div>
+              ${r.line ? `<div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">所在线路</span><span>${escapeHtml(r.line)}</span></div>` : ''}
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">无人机型号</span><span>${escapeHtml(r.droneModel)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">飞行时间</span><span>${formatDateTime(r.flightTime)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">地点</span><span>${escapeHtml(r.location)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">用途</span><span>${escapeHtml(r.purpose)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">资质编号</span><span>${escapeHtml(r.certification)}</span></div>
+            </div>
+            <div class="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-400">
+              报备时间：${formatDateTime(r.submittedAt)}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('recordCount').textContent = `共 ${reports.length} 条记录`;
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    /**
+     * 关闭已报备记录模态框
+     */
+    function closeRecordsModal() {
+      document.getElementById('recordsModal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    /**
+     * 删除单条报备记录
+     * @param {string} id - 记录ID
+     */
+    function deleteRecord(id) {
+      let reports = getReports();
+      reports = reports.filter(r => r.id !== id);
+      saveReports(reports);
+      openRecordsModal(); // 刷新列表
+    }
+
+    /**
+     * 清空所有报备记录
+     */
+    function clearAllRecords() {
+      if (!confirm('确定要清空所有报备记录吗？此操作不可恢复。')) return;
+      saveReports([]);
+      openRecordsModal(); // 刷新列表
+    }
+
+    /**
+     * HTML 转义，防止 XSS
+     * @param {string} str - 原始字符串
+     * @returns {string} 转义后的安全字符串
+     */
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // 实时清除字段错误状态（用户输入时）
+    document.querySelectorAll('#reportForm input, #reportForm select').forEach(el => {
+      const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(eventType, () => {
+        const fieldId = el.id;
+        hideFieldError(fieldId);
+      });
+    });
+
+    // 点击模态框遮罩关闭
+    document.getElementById('recordsModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeRecordsModal();
+    });
+
+    // ESC 键关闭模态框
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeRecordsModal();
+    });
+
+    // 绑定表单提交
+    document.getElementById('reportForm').addEventListener('submit', handleSubmit);
+
+    // 设置飞行时间最小值为当前时间
+    (function setMinFlightTime() {
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000;
+      const localISO = new Date(now - offset).toISOString().slice(0, 16);
+      document.getElementById('flightTime').setAttribute('min', localISO);
+    })();
+
+    // 生成二维码（指向当前页面自身）
+    (function initQRCode() {
+      const pageUrl = window.location.origin + window.location.pathname;
+      document.getElementById('qrUrl').textContent = pageUrl;
+      new QRCode(document.getElementById('qrcodeContainer'), {
+        text: pageUrl,
+        width: 180,
+        height: 180,
+        colorDark: '#0d2d5a',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H,
+      });
+    })();
+  </script>
+</body>
+</html>
