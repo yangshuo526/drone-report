@@ -352,6 +352,11 @@
 
     const STORAGE_KEY = 'drone_flight_reports';
 
+    // ===================== PushPlus 推送配置 =====================
+    // 微信搜索公众号「PushPlus推送加」关注后获取 Token
+    const PUSHPLUS_TOKEN = '7703bcdbfe8c4186858d96beb49af15c';
+    // ============================================================
+
     /**
      * 从 localStorage 读取所有报备记录
      * @returns {Array} 报备记录数组
@@ -516,6 +521,9 @@
       // 显示成功提示
       showSuccessBanner();
 
+      // 推送通知到微信（异步，不阻塞页面）
+      sendPushPlusNotification(report);
+
       // 滚动到顶部
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -595,6 +603,62 @@
       if (!confirm('确定要清空所有报备记录吗？此操作不可恢复。')) return;
       saveReports([]);
       openRecordsModal(); // 刷新列表
+    }
+
+    /**
+     * 通过 PushPlus 推送报备通知到微信
+     * @param {Object} report - 报备数据
+     */
+    async function sendPushPlusNotification(report) {
+      if (!PUSHPLUS_TOKEN) {
+        console.log('PushPlus Token 未配置，跳过推送');
+        return;
+      }
+
+      const title = '🛫 新的无人机飞行报备';
+      const lineInfo = report.line ? `**所在线路：** ${report.line}\n` : '';
+      const content = `
+## 无人机飞行报备通知
+
+**报备人：** ${report.name}
+
+**联系方式：** ${report.phone}
+
+${lineInfo}**无人机型号/编号：** ${report.droneModel}
+
+**飞行时间：** ${formatDateTime(report.flightTime)}
+
+**飞行地点：** ${report.location}
+
+**用途：** ${report.purpose}
+
+**作业人员资质：** ${report.certification}
+
+---
+
+⏰ 报备时间：${formatDateTime(report.submittedAt)}
+`.trim();
+
+      try {
+        const resp = await fetch('https://www.pushplus.plus/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: PUSHPLUS_TOKEN,
+            title: title,
+            content: content,
+            template: 'markdown',
+          }),
+        });
+        const result = await resp.json();
+        if (result.code === 200) {
+          console.log('PushPlus 推送成功');
+        } else {
+          console.error('PushPlus 推送失败:', result.msg);
+        }
+      } catch (err) {
+        console.error('PushPlus 推送异常:', err);
+      }
     }
 
     /**
