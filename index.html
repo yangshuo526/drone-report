@@ -238,20 +238,21 @@
           <label class="block text-sm font-medium text-gray-700 mb-1.5">
             地点（省/市/县区/乡镇/村） <span class="text-railred-500">*</span>
           </label>
-          <div class="flex gap-2">
-            <input
-              type="text"
+          <div class="flex gap-1.5 items-start">
+            <textarea
               id="location"
               name="location"
               required
-              placeholder="如：江西省鹰潭市月湖区xx乡镇xx村"
-              class="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
-            />
+              rows="2"
+              placeholder="第一行：省/市/县区/乡镇/村&#10;第二行：经度 纬度"
+              class="flex-1 px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400 resize-none leading-relaxed"
+              style="min-height: 60px;"
+            ></textarea>
             <button
               type="button"
               id="locateBtn"
               onclick="getLocation()"
-              class="flex-shrink-0 px-3 py-2.5 bg-railway-50 hover:bg-railway-100 active:bg-railway-200 text-railway-700 border border-railway-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-railway-500"
+              class="flex-shrink-0 px-2.5 py-2 bg-railway-50 hover:bg-railway-100 active:bg-railway-200 text-railway-700 border border-railway-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-railway-500"
               title="获取当前位置"
             >
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -736,6 +737,8 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
     /**
      * 获取当前位置并填入地点字段
      * 使用浏览器 Geolocation API + 高德逆地理编码
+     * 第一行：省/市/县区/乡镇/村
+     * 第二行：经度 纬度
      */
     function getLocation() {
       const btn = document.getElementById('locateBtn');
@@ -755,8 +758,9 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
+          const coordLine = `经度:${longitude.toFixed(6)} 纬度:${latitude.toFixed(6)}`;
           try {
-            // 使用高德地图逆地理编码API（免费，无需key可获取基本行政区划）
+            // 使用高德地图逆地理编码API
             const resp = await fetch(`https://restapi.amap.com/v3/geocode/regeo?key=2e43e4e7e2237c963d50fb2e2f4e7b1c&location=${longitude},${latitude}&extensions=base`);
             const data = await resp.json();
             if (data.status === '1' && data.regeocode) {
@@ -765,18 +769,22 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
               const city = addr.city || '';
               const district = addr.district || '';
               const township = addr.township || '';
-              locationInput.value = `${province}${city}${district}${township}`;
+              // neighborhood 包含社区/村级别信息
+              const neighborhood = (addr.neighborhood && addr.neighborhood.name) ? addr.neighborhood.name : '';
+              const addressLine = `${province}${city}${district}${township}${neighborhood}`;
+              locationInput.value = `${addressLine}\n${coordLine}`;
+              hintEl.textContent = '✓ 已获取位置信息';
               hintEl.classList.remove('hidden');
               setTimeout(() => hintEl.classList.add('hidden'), 3000);
             } else {
-              // 高德API失败，尝试使用浏览器自带信息
-              locationInput.value = `经度:${longitude.toFixed(4)} 纬度:${latitude.toFixed(4)}`;
+              // 高德API失败，只填经纬度
+              locationInput.value = `\n${coordLine}`;
               hintEl.textContent = '✓ 已获取经纬度（请补充详细地址）';
               hintEl.classList.remove('hidden');
             }
           } catch (err) {
             // 网络异常时直接填经纬度
-            locationInput.value = `经度:${longitude.toFixed(4)} 纬度:${latitude.toFixed(4)}`;
+            locationInput.value = `\n${coordLine}`;
             hintEl.textContent = '✓ 已获取经纬度（请补充详细地址）';
             hintEl.classList.remove('hidden');
           }
