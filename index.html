@@ -161,6 +161,23 @@
           <p id="phoneError" class="hidden mt-1 text-xs text-railred-500">请输入正确的11位手机号</p>
         </div>
 
+        <!-- 身份证号 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            身份证号 <span class="text-railred-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="idCard"
+            name="idCard"
+            required
+            maxlength="18"
+            placeholder="请输入18位身份证号"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="idCardError" class="hidden mt-1 text-xs text-railred-500">请输入正确的18位身份证号</p>
+        </div>
+
         <!-- 所在线路（非必填） -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1.5">
@@ -221,15 +238,31 @@
           <label class="block text-sm font-medium text-gray-700 mb-1.5">
             地点（省/市/县区/乡镇/村） <span class="text-railred-500">*</span>
           </label>
-          <input
-            type="text"
-            id="location"
-            name="location"
-            required
-            placeholder="如：江西省鹰潭市月湖区xx乡镇xx村"
-            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
-          />
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="location"
+              name="location"
+              required
+              placeholder="如：江西省鹰潭市月湖区xx乡镇xx村"
+              class="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+            />
+            <button
+              type="button"
+              id="locateBtn"
+              onclick="getLocation()"
+              class="flex-shrink-0 px-3 py-2.5 bg-railway-50 hover:bg-railway-100 active:bg-railway-200 text-railway-700 border border-railway-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-railway-500"
+              title="获取当前位置"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span id="locateBtnText">定位</span>
+            </button>
+          </div>
           <p id="locationError" class="hidden mt-1 text-xs text-railred-500">请输入飞行地点（省/市/县区/乡镇/村）</p>
+          <p id="locationHint" class="hidden mt-1 text-xs text-green-600">✓ 已获取位置信息</p>
         </div>
 
         <!-- 用途 -->
@@ -248,6 +281,7 @@
             <option value="巡检">巡检</option>
             <option value="测绘">测绘</option>
             <option value="拍照">拍照</option>
+            <option value="农用">农用</option>
             <option value="其他">其他</option>
           </select>
           <p id="purposeError" class="hidden mt-1 text-xs text-railred-500">请选择用途</p>
@@ -393,6 +427,15 @@
     }
 
     /**
+     * 身份证号格式校验（18位）
+     * @param {string} idCard - 身份证号字符串
+     * @returns {boolean} 是否为合法身份证号
+     */
+    function isValidIdCard(idCard) {
+      return /^\d{17}[\dXx]$/.test(idCard);
+    }
+
+    /**
      * 显示字段错误提示
      * @param {string} fieldId - 字段ID
      */
@@ -436,7 +479,7 @@
      */
     function validateForm() {
       let isValid = true;
-      const fields = ['name', 'phone', 'droneModel', 'flightTime', 'location', 'purpose', 'certification'];
+      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'location', 'purpose', 'certification'];
 
       // 先隐藏所有错误
       fields.forEach(hideFieldError);
@@ -447,6 +490,9 @@
 
       const phone = document.getElementById('phone').value.trim();
       if (!phone || !isValidPhone(phone)) { showFieldError('phone'); isValid = false; }
+
+      const idCard = document.getElementById('idCard').value.trim();
+      if (!idCard || !isValidIdCard(idCard)) { showFieldError('idCard'); isValid = false; }
 
       const droneModel = document.getElementById('droneModel').value.trim();
       if (!droneModel) { showFieldError('droneModel'); isValid = false; }
@@ -502,6 +548,7 @@
         name: document.getElementById('name').value.trim(),
         line: document.getElementById('line').value,
         phone: document.getElementById('phone').value.trim(),
+        idCard: document.getElementById('idCard').value.trim(),
         droneModel: document.getElementById('droneModel').value.trim(),
         flightTime: document.getElementById('flightTime').value,
         location: document.getElementById('location').value.trim(),
@@ -558,6 +605,7 @@
             </div>
             <div class="space-y-1.5 text-xs text-gray-600">
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">联系方式</span><span>${escapeHtml(r.phone)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">身份证号</span><span>${maskIdCard(r.idCard)}</span></div>
               ${r.line ? `<div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">所在线路</span><span>${escapeHtml(r.line)}</span></div>` : ''}
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">无人机型号</span><span>${escapeHtml(r.droneModel)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">飞行时间</span><span>${formatDateTime(r.flightTime)}</span></div>
@@ -624,6 +672,8 @@
 
 **联系方式：** ${report.phone}
 
+**身份证号：** ${maskIdCard(report.idCard)}
+
 ${lineInfo}**无人机型号/编号：** ${report.droneModel}
 
 **飞行时间：** ${formatDateTime(report.flightTime)}
@@ -671,6 +721,81 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
+    }
+
+    /**
+     * 身份证号脱敏（仅显示前3位和后4位）
+     * @param {string} idCard - 身份证号
+     * @returns {string} 脱敏后的身份证号
+     */
+    function maskIdCard(idCard) {
+      if (!idCard || idCard.length < 8) return idCard || '';
+      return idCard.slice(0, 3) + '***********' + idCard.slice(-4);
+    }
+
+    /**
+     * 获取当前位置并填入地点字段
+     * 使用浏览器 Geolocation API + 高德逆地理编码
+     */
+    function getLocation() {
+      const btn = document.getElementById('locateBtn');
+      const btnText = document.getElementById('locateBtnText');
+      const locationInput = document.getElementById('location');
+      const hintEl = document.getElementById('locationHint');
+
+      if (!navigator.geolocation) {
+        alert('您的浏览器不支持定位功能，请手动输入地点');
+        return;
+      }
+
+      // 更新按钮状态
+      btn.disabled = true;
+      btnText.textContent = '定位中...';
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            // 使用高德地图逆地理编码API（免费，无需key可获取基本行政区划）
+            const resp = await fetch(`https://restapi.amap.com/v3/geocode/regeo?key=2e43e4e7e2237c963d50fb2e2f4e7b1c&location=${longitude},${latitude}&extensions=base`);
+            const data = await resp.json();
+            if (data.status === '1' && data.regeocode) {
+              const addr = data.regeocode.addressComponent;
+              const province = addr.province || '';
+              const city = addr.city || '';
+              const district = addr.district || '';
+              const township = addr.township || '';
+              locationInput.value = `${province}${city}${district}${township}`;
+              hintEl.classList.remove('hidden');
+              setTimeout(() => hintEl.classList.add('hidden'), 3000);
+            } else {
+              // 高德API失败，尝试使用浏览器自带信息
+              locationInput.value = `经度:${longitude.toFixed(4)} 纬度:${latitude.toFixed(4)}`;
+              hintEl.textContent = '✓ 已获取经纬度（请补充详细地址）';
+              hintEl.classList.remove('hidden');
+            }
+          } catch (err) {
+            // 网络异常时直接填经纬度
+            locationInput.value = `经度:${longitude.toFixed(4)} 纬度:${latitude.toFixed(4)}`;
+            hintEl.textContent = '✓ 已获取经纬度（请补充详细地址）';
+            hintEl.classList.remove('hidden');
+          }
+          btn.disabled = false;
+          btnText.textContent = '定位';
+        },
+        (error) => {
+          let msg = '定位失败';
+          switch (error.code) {
+            case error.PERMISSION_DENIED: msg = '定位权限被拒绝，请在浏览器设置中允许定位'; break;
+            case error.POSITION_UNAVAILABLE: msg = '无法获取位置信息'; break;
+            case error.TIMEOUT: msg = '定位超时，请重试'; break;
+          }
+          alert(msg + '，请手动输入地点');
+          btn.disabled = false;
+          btnText.textContent = '定位';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
     }
 
     // 实时清除字段错误状态（用户输入时）
