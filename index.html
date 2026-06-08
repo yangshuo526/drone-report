@@ -310,7 +310,22 @@
               <span class="text-sm font-medium text-gray-700">否</span>
             </label>
           </div>
-          <p id="acknowledgeError" class="hidden mt-1 text-xs text-railred-500">请知悉安全规定并选择"是"</p>
+          <p id="acknowledgeError" class="hidden mt-1 text-xs text-railred-500">请知悉安全规定并选择"是"，或选择"否"并填写特殊情况备注</p>
+        </div>
+
+        <!-- 特殊情况备注（选择"否"时显示） -->
+        <div id="remarksGroup" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            特殊情况备注 <span class="text-railred-500">*</span>
+          </label>
+          <textarea
+            id="remarks"
+            name="remarks"
+            rows="3"
+            placeholder="请说明未在禁飞区范围内飞行等特殊情况…"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400 resize-none"
+          ></textarea>
+          <p id="remarksError" class="hidden mt-1 text-xs text-railred-500">选择"否"时须填写特殊情况备注</p>
         </div>
 
         <!-- 分隔线 -->
@@ -389,6 +404,53 @@
     </div>
 
     <!-- 按钮区 -->
+    <div class="mt-4 space-y-3">
+      <button
+        type="button"
+        onclick="resetToForm()"
+        class="w-full bg-railway-700 hover:bg-railway-800 active:bg-railway-900 text-white font-semibold py-3 rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:ring-offset-2"
+      >
+        继续报备
+      </button>
+      <button
+        type="button"
+        onclick="openRecordsModal()"
+        class="w-full bg-white hover:bg-gray-50 active:bg-gray-100 text-railway-700 font-medium py-2.5 rounded-lg border border-railway-200 transition-colors focus:outline-none focus:ring-2 focus:ring-railway-500 focus:ring-offset-2"
+      >
+        查看已报备记录
+      </button>
+    </div>
+
+    <footer class="mt-6 mb-4 text-center">
+      <p class="text-xs text-gray-400 tracking-wide">中国铁路南昌局集团有限公司鹰潭工务段</p>
+    </footer>
+  </div>
+
+  <!-- 报备成功页面（选"否"时显示：等待批准） -->
+  <div id="successPageWait" class="hidden max-w-lg mx-auto px-4 py-10 animate-fade-in-up">
+    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <!-- 上半部分：报备已提交 -->
+      <div class="bg-amber-50 py-10 px-6 text-center">
+        <div class="mx-auto w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+          <svg class="w-10 h-10 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-amber-700 mb-2">报备成功，等待批准</h2>
+        <p class="text-sm text-amber-600">管理员将审核您的情况后予以答复</p>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="border-t border-gray-200"></div>
+
+      <!-- 下半部分：安全告知 -->
+      <div class="bg-red-50 py-10 px-6 text-center">
+        <p class="text-sm text-red-800 leading-relaxed">
+          ⚠️ 安全告知：禁止在高速铁路电力线路导线两侧各<strong>100米</strong>范围内、普通铁路电力线路导线两侧各<strong>50米</strong>范围内放飞无人机等低空、慢速、小型航空器。否则交由公安机关处理！
+        </p>
+      </div>
+    </div>
+
     <div class="mt-4 space-y-3">
       <button
         type="button"
@@ -524,7 +586,7 @@
      */
     function validateForm() {
       let isValid = true;
-      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'location', 'purpose', 'certification', 'acknowledge'];
+      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'location', 'purpose', 'certification', 'acknowledge', 'remarks'];
 
       // 先隐藏所有错误
       fields.forEach(hideFieldError);
@@ -555,7 +617,13 @@
       if (!certification) { showFieldError('certification'); isValid = false; }
 
       const acknowledge = document.querySelector('input[name="acknowledge"]:checked');
-      if (!acknowledge || acknowledge.value !== '是') { showFieldError('acknowledge'); isValid = false; }
+      if (!acknowledge) {
+        showFieldError('acknowledge'); isValid = false;
+      } else if (acknowledge.value === '否') {
+        // 选"否"时必须填写备注
+        const remarks = document.getElementById('remarks').value.trim();
+        if (!remarks) { showFieldError('remarks'); isValid = false; }
+      }
 
       return isValid;
     }
@@ -603,6 +671,9 @@
         purpose: document.getElementById('purpose').value,
         certification: document.getElementById('certification').value.trim(),
         acknowledge: document.querySelector('input[name="acknowledge"]:checked').value,
+        remarks: (document.querySelector('input[name="acknowledge"]:checked').value === '否')
+          ? document.getElementById('remarks').value.trim()
+          : '',
         submittedAt: new Date().toISOString(),
       };
 
@@ -614,9 +685,13 @@
       // 重置表单
       document.getElementById('reportForm').reset();
 
-      // 切换到报备成功页面
+      // 切换到报备成功页面（根据是否知悉选择不同页面）
       document.getElementById('pageContent').classList.add('hidden');
-      document.getElementById('successPage').classList.remove('hidden');
+      if (report.acknowledge === '否') {
+        document.getElementById('successPageWait').classList.remove('hidden');
+      } else {
+        document.getElementById('successPage').classList.remove('hidden');
+      }
 
       // 推送通知到微信（异步，不阻塞页面）
       sendPushPlusNotification(report);
@@ -630,6 +705,7 @@
      */
     function resetToForm() {
       document.getElementById('successPage').classList.add('hidden');
+      document.getElementById('successPageWait').classList.add('hidden');
       document.getElementById('pageContent').classList.remove('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -672,6 +748,7 @@
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">用途</span><span>${escapeHtml(r.purpose)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">资质编号</span><span>${escapeHtml(r.certification)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">是否知悉</span><span class="${r.acknowledge === '是' ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}">${escapeHtml(r.acknowledge || '--')}</span></div>
+              ${r.remarks ? `<div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">备注</span><span class="text-amber-700">${escapeHtml(r.remarks)}</span></div>` : ''}
             </div>
             <div class="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-400">
               报备时间：${formatDateTime(r.submittedAt)}
@@ -745,6 +822,7 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
 **作业人员资质：** ${report.certification}
 
 **是否知悉安全规定：** ${report.acknowledge}
+${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
 
 ---
 
@@ -876,9 +954,24 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
       });
     });
 
-    // 知悉选项切换时清除错误状态
+    // 知悉选项切换时清除错误状态，并显示/隐藏备注
     document.querySelectorAll('input[name="acknowledge"]').forEach(el => {
-      el.addEventListener('change', () => hideFieldError('acknowledge'));
+      el.addEventListener('change', () => {
+        hideFieldError('acknowledge');
+        const remarksGroup = document.getElementById('remarksGroup');
+        if (el.value === '否') {
+          remarksGroup.classList.remove('hidden');
+        } else {
+          remarksGroup.classList.add('hidden');
+          document.getElementById('remarks').value = '';
+          hideFieldError('remarks');
+        }
+      });
+    });
+
+    // 备注输入时清除错误状态
+    document.getElementById('remarks').addEventListener('input', () => {
+      hideFieldError('remarks');
     });
 
     // 点击模态框遮罩关闭
