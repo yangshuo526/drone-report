@@ -96,22 +96,8 @@
     </div>
   </header>
 
-  <!-- 成功提示条 -->
-  <div id="successBanner" class="hidden fixed top-0 left-0 right-0 z-50 bg-green-600 text-white text-center py-3 px-4 shadow-md animate-slide-down">
-    <div class="max-w-lg mx-auto flex items-center justify-center gap-2">
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      <span class="font-medium">报备提交成功！</span>
-      <button onclick="hideSuccessBanner()" class="ml-4 hover:text-green-200 transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
-  </div>
-
   <!-- 主内容区 -->
+  <div id="pageContent">
   <main class="max-w-lg mx-auto px-4 py-6 animate-fade-in-up">
 
     <!-- 报备表单卡片 -->
@@ -304,6 +290,29 @@
           <p id="certificationError" class="hidden mt-1 text-xs text-railred-500">请输入作业人员资质信息</p>
         </div>
 
+        <!-- 安全告知与知悉确认 -->
+        <div>
+          <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-3">
+            <p class="text-sm text-amber-800 leading-relaxed">
+              ⚠️ <strong>安全告知：</strong>禁止在高速铁路电力线路导线两侧各<strong>100米</strong>范围内、普通铁路电力线路导线两侧各<strong>50米</strong>范围内放飞无人机等低空、慢速、小型航空器。否则交由公安机关处理！
+            </p>
+          </div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            是否知悉 <span class="text-railred-500">*</span>
+          </label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer px-5 py-2.5 border border-gray-300 rounded-lg hover:border-railway-400 transition-colors has-[:checked]:border-railway-500 has-[:checked]:bg-railway-50 has-[:checked]:ring-1 has-[:checked]:ring-railway-500">
+              <input type="radio" id="acknowledgeYes" name="acknowledge" value="是" required class="w-4 h-4 text-railway-600 focus:ring-railway-500" />
+              <span class="text-sm font-medium text-gray-700">是</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer px-5 py-2.5 border border-gray-300 rounded-lg hover:border-railway-400 transition-colors has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:ring-1 has-[:checked]:ring-red-400">
+              <input type="radio" id="acknowledgeNo" name="acknowledge" value="否" required class="w-4 h-4 text-red-500 focus:ring-red-400" />
+              <span class="text-sm font-medium text-gray-700">否</span>
+            </label>
+          </div>
+          <p id="acknowledgeError" class="hidden mt-1 text-xs text-railred-500">请知悉安全规定并选择"是"</p>
+        </div>
+
         <!-- 分隔线 -->
         <div class="border-t border-gray-100 pt-4">
           <!-- 提交按钮 -->
@@ -350,6 +359,57 @@
       <p class="text-xs text-gray-400 tracking-wide">中国铁路南昌局集团有限公司鹰潭工务段</p>
     </footer>
   </main>
+  </div>
+
+  <!-- 报备成功页面 -->
+  <div id="successPage" class="hidden max-w-lg mx-auto px-4 py-10 animate-fade-in-up">
+    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <!-- 上半部分：报备成功 -->
+      <div class="bg-green-50 py-10 px-6 text-center">
+        <!-- 成功图标 -->
+        <div class="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+          <svg class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <!-- 成功文字 -->
+        <h2 class="text-2xl font-bold text-green-700 mb-2">报备成功，准许飞行</h2>
+        <p class="text-sm text-green-600">飞行期间请严格遵守铁路安全规定</p>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="border-t border-gray-200"></div>
+
+      <!-- 下半部分：安全告知 -->
+      <div class="bg-amber-50 py-10 px-6 text-center">
+        <p class="text-sm text-amber-800 leading-relaxed">
+          ⚠️ 安全告知：禁止在高速铁路电力线路导线两侧各<strong>100米</strong>范围内、普通铁路电力线路导线两侧各<strong>50米</strong>范围内放飞无人机等低空、慢速、小型航空器。否则交由公安机关处理！
+        </p>
+      </div>
+    </div>
+
+    <!-- 按钮区 -->
+    <div class="mt-4 space-y-3">
+      <button
+        type="button"
+        onclick="resetToForm()"
+        class="w-full bg-railway-700 hover:bg-railway-800 active:bg-railway-900 text-white font-semibold py-3 rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:ring-offset-2"
+      >
+        继续报备
+      </button>
+      <button
+        type="button"
+        onclick="openRecordsModal()"
+        class="w-full bg-white hover:bg-gray-50 active:bg-gray-100 text-railway-700 font-medium py-2.5 rounded-lg border border-railway-200 transition-colors focus:outline-none focus:ring-2 focus:ring-railway-500 focus:ring-offset-2"
+      >
+        查看已报备记录
+      </button>
+    </div>
+
+    <footer class="mt-6 mb-4 text-center">
+      <p class="text-xs text-gray-400 tracking-wide">中国铁路南昌局集团有限公司鹰潭工务段</p>
+    </footer>
+  </div>
 
   <!-- 已报备记录模态框 -->
   <div id="recordsModal" class="hidden fixed inset-0 z-40 modal-overlay">
@@ -459,28 +519,12 @@
     }
 
     /**
-     * 显示成功提示横幅
-     */
-    function showSuccessBanner() {
-      const banner = document.getElementById('successBanner');
-      banner.classList.remove('hidden');
-      setTimeout(() => hideSuccessBanner(), 4000);
-    }
-
-    /**
-     * 隐藏成功提示横幅
-     */
-    function hideSuccessBanner() {
-      document.getElementById('successBanner').classList.add('hidden');
-    }
-
-    /**
      * 表单验证
      * @returns {boolean} 表单是否通过验证
      */
     function validateForm() {
       let isValid = true;
-      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'location', 'purpose', 'certification'];
+      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'location', 'purpose', 'certification', 'acknowledge'];
 
       // 先隐藏所有错误
       fields.forEach(hideFieldError);
@@ -509,6 +553,9 @@
 
       const certification = document.getElementById('certification').value.trim();
       if (!certification) { showFieldError('certification'); isValid = false; }
+
+      const acknowledge = document.querySelector('input[name="acknowledge"]:checked');
+      if (!acknowledge || acknowledge.value !== '是') { showFieldError('acknowledge'); isValid = false; }
 
       return isValid;
     }
@@ -555,6 +602,7 @@
         location: document.getElementById('location').value.trim(),
         purpose: document.getElementById('purpose').value,
         certification: document.getElementById('certification').value.trim(),
+        acknowledge: document.querySelector('input[name="acknowledge"]:checked').value,
         submittedAt: new Date().toISOString(),
       };
 
@@ -566,13 +614,23 @@
       // 重置表单
       document.getElementById('reportForm').reset();
 
-      // 显示成功提示
-      showSuccessBanner();
+      // 切换到报备成功页面
+      document.getElementById('pageContent').classList.add('hidden');
+      document.getElementById('successPage').classList.remove('hidden');
 
       // 推送通知到微信（异步，不阻塞页面）
       sendPushPlusNotification(report);
 
       // 滚动到顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * 从成功页面返回表单
+     */
+    function resetToForm() {
+      document.getElementById('successPage').classList.add('hidden');
+      document.getElementById('pageContent').classList.remove('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -613,6 +671,7 @@
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">地点</span><span>${escapeHtml(r.location)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">用途</span><span>${escapeHtml(r.purpose)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">资质编号</span><span>${escapeHtml(r.certification)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">是否知悉</span><span class="${r.acknowledge === '是' ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}">${escapeHtml(r.acknowledge || '--')}</span></div>
             </div>
             <div class="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-400">
               报备时间：${formatDateTime(r.submittedAt)}
@@ -684,6 +743,8 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
 **用途：** ${report.purpose}
 
 **作业人员资质：** ${report.certification}
+
+**是否知悉安全规定：** ${report.acknowledge}
 
 ---
 
@@ -813,6 +874,11 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
         const fieldId = el.id;
         hideFieldError(fieldId);
       });
+    });
+
+    // 知悉选项切换时清除错误状态
+    document.querySelectorAll('input[name="acknowledge"]').forEach(el => {
+      el.addEventListener('change', () => hideFieldError('acknowledge'));
     });
 
     // 点击模态框遮罩关闭
