@@ -8,7 +8,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     tailwind.config = {
@@ -220,21 +219,36 @@
           <p id="flightTimeError" class="hidden mt-1 text-xs text-railred-500">请选择飞行时间</p>
         </div>
 
-        <!-- 地点（省/市/县区/乡镇/村） -->
+        <!-- 地点 - 详细地址（省/市/县区/乡镇/村） -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1.5">
             地点（省/市/县区/乡镇/村） <span class="text-railred-500">*</span>
           </label>
+          <input
+            type="text"
+            id="locationAddress"
+            name="locationAddress"
+            required
+            placeholder="请点击"定位"按钮自动获取，或手动输入省/市/县区/乡镇/街道/村"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="locationAddressError" class="hidden mt-1 text-xs text-railred-500">请输入飞行地点（省/市/县区/乡镇/村）</p>
+        </div>
+
+        <!-- 地点 - 经纬度 + 定位 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            经度/纬度 <span class="text-railred-500">*</span>
+          </label>
           <div class="flex gap-1.5 items-start">
-            <textarea
-              id="location"
-              name="location"
+            <input
+              type="text"
+              id="locationCoords"
+              name="locationCoords"
               required
-              rows="2"
-              placeholder="第一行：省/市/县区/乡镇/街道/村&#10;第二行：经度 纬度"
-              class="flex-1 px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400 resize-none leading-relaxed"
-              style="min-height: 60px;"
-            ></textarea>
+              placeholder="请点击"定位"按钮自动获取，或手动输入经度/纬度"
+              class="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+            />
             <button
               type="button"
               id="locateBtn"
@@ -249,7 +263,7 @@
               <span id="locateBtnText">定位</span>
             </button>
           </div>
-          <p id="locationError" class="hidden mt-1 text-xs text-railred-500">请输入飞行地点（省/市/县区/乡镇/村）</p>
+          <p id="locationCoordsError" class="hidden mt-1 text-xs text-railred-500">请获取或输入经纬度信息</p>
           <p id="locationHint" class="hidden mt-1 text-xs text-green-600">✓ 已获取位置信息</p>
         </div>
 
@@ -351,24 +365,6 @@
       </form>
     </div>
 
-    <!-- 二维码分享卡片 -->
-    <div class="mt-5 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-      <div class="bg-railway-50 border-b border-railway-100 px-5 py-3">
-        <h2 class="text-base font-semibold text-railway-800 flex items-center gap-2">
-          <svg class="w-4 h-4 text-railway-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-          </svg>
-          扫码报备
-        </h2>
-      </div>
-      <div class="px-5 py-5 text-center">
-        <p class="text-sm text-gray-500 mb-4">使用手机扫描二维码，快速填写报备信息</p>
-        <div id="qrcodeContainer" class="inline-block p-3 bg-white border-2 border-railway-100 rounded-xl shadow-sm"></div>
-        <div class="mt-4 bg-gray-50 rounded-lg px-4 py-2.5 inline-block">
-          <p id="qrUrl" class="text-xs text-railway-600 font-mono break-all select-all"></p>
-        </div>
-      </div>
-    </div>
 
     <!-- 底部标注 -->
     <footer class="mt-6 mb-4 text-center">
@@ -597,7 +593,7 @@
      */
     function validateForm() {
       let isValid = true;
-      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'location', 'purpose', 'certification', 'acknowledge', 'remarks'];
+      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'locationAddress', 'locationCoords', 'purpose', 'certification', 'acknowledge', 'remarks'];
 
       // 先隐藏所有错误
       fields.forEach(hideFieldError);
@@ -618,8 +614,11 @@
       const flightTime = document.getElementById('flightTime').value;
       if (!flightTime) { showFieldError('flightTime'); isValid = false; }
 
-      const location = document.getElementById('location').value.trim();
-      if (!location) { showFieldError('location'); isValid = false; }
+      const locationAddress = document.getElementById('locationAddress').value.trim();
+      if (!locationAddress) { showFieldError('locationAddress'); isValid = false; }
+
+      const locationCoords = document.getElementById('locationCoords').value.trim();
+      if (!locationCoords) { showFieldError('locationCoords'); isValid = false; }
 
       const purpose = document.getElementById('purpose').value;
       if (!purpose) { showFieldError('purpose'); isValid = false; }
@@ -678,7 +677,8 @@
         idCard: document.getElementById('idCard').value.trim(),
         droneModel: document.getElementById('droneModel').value.trim(),
         flightTime: document.getElementById('flightTime').value,
-        location: document.getElementById('location').value.trim(),
+        locationAddress: document.getElementById('locationAddress').value.trim(),
+        locationCoords: document.getElementById('locationCoords').value.trim(),
         purpose: document.getElementById('purpose').value,
         certification: document.getElementById('certification').value.trim(),
         acknowledge: document.querySelector('input[name="acknowledge"]:checked').value,
@@ -755,7 +755,8 @@
               ${r.line ? `<div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">所在线路</span><span>${escapeHtml(r.line)}</span></div>` : ''}
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">无人机型号</span><span>${escapeHtml(r.droneModel)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">飞行时间</span><span>${formatDateTime(r.flightTime)}</span></div>
-              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">地点</span><span>${escapeHtml(r.location)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">地点</span><span>${escapeHtml(r.locationAddress || r.location || '')}</span></div>
+              ${(r.locationCoords) ? `<div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">经纬度</span><span class="text-gray-500">${escapeHtml(r.locationCoords)}</span></div>` : ''}
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">用途</span><span>${escapeHtml(r.purpose)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">资质编号</span><span>${escapeHtml(r.certification)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">是否知悉</span><span class="${r.acknowledge === '是' ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}">${escapeHtml(r.acknowledge || '--')}</span></div>
@@ -815,7 +816,7 @@
       // 表头
       const headers = [
         '序号', '姓名', '联系方式', '身份证号', '所在线路',
-        '无人机型号/编号', '飞行时间', '地点', '用途',
+        '无人机型号/编号', '飞行时间', '地点（省/市/县区/乡镇/村）', '经纬度', '用途',
         '作业人员资质', '是否知悉', '特殊情况备注', '报备时间'
       ];
 
@@ -828,7 +829,8 @@
         r.line || '--',
         r.droneModel || '',
         formatDateTime(r.flightTime),
-        (r.location || '').replace(/\n/g, ' | '),
+        r.locationAddress || (r.location || '').split('\n')[0] || '',
+        r.locationCoords || (r.location || '').split('\n')[1] || '',
         r.purpose || '',
         r.certification || '',
         r.acknowledge || '',
@@ -864,7 +866,8 @@
         { wch: 12 },  // 所在线路
         { wch: 20 },  // 无人机型号/编号
         { wch: 18 },  // 飞行时间
-        { wch: 36 },  // 地点
+        { wch: 30 },  // 地点（省/市/县区/乡镇/村）
+        { wch: 22 },  // 经纬度
         { wch: 10 },  // 用途
         { wch: 20 },  // 作业人员资质
         { wch: 10 },  // 是否知悉
@@ -872,9 +875,9 @@
         { wch: 18 },  // 报备时间
       ];
 
-      // 合并标题行（A1 到 M1）
+      // 合并标题行（A1 到 N1）
       ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 13 } },
       ];
 
       // 添加工作表
@@ -914,7 +917,9 @@ ${lineInfo}**无人机型号/编号：** ${report.droneModel}
 
 **飞行时间：** ${formatDateTime(report.flightTime)}
 
-**飞行地点：** ${report.location}
+**飞行地点：** ${report.locationAddress}
+
+**经纬度：** ${report.locationCoords}
 
 **用途：** ${report.purpose}
 
@@ -982,7 +987,8 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
     function getLocation() {
       const btn = document.getElementById('locateBtn');
       const btnText = document.getElementById('locateBtnText');
-      const locationInput = document.getElementById('location');
+      const addressInput = document.getElementById('locationAddress');
+      const coordsInput = document.getElementById('locationCoords');
       const hintEl = document.getElementById('locationHint');
 
       if (!navigator.geolocation) {
@@ -1019,19 +1025,20 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
               // 组装详细地址：省/市/区/乡镇/街道/门牌号/村/建筑物
               const parts = [province, city, district, township, streetFull, neighborhood, building].filter(p => p);
               const addressLine = parts.join('');
-              locationInput.value = `${addressLine}\n${coordLine}`;
+              addressInput.value = addressLine;
+              coordsInput.value = coordLine;
               hintEl.textContent = '✓ 已获取详细位置（可手动修改）';
               hintEl.classList.remove('hidden');
               setTimeout(() => hintEl.classList.add('hidden'), 3000);
             } else {
               // 高德API失败，只填经纬度
-              locationInput.value = `\n${coordLine}`;
+              coordsInput.value = coordLine;
               hintEl.textContent = '✓ 已获取经纬度（请补充详细地址）';
               hintEl.classList.remove('hidden');
             }
           } catch (err) {
             // 网络异常时直接填经纬度
-            locationInput.value = `\n${coordLine}`;
+            coordsInput.value = coordLine;
             hintEl.textContent = '✓ 已获取经纬度（请补充详细地址）';
             hintEl.classList.remove('hidden');
           }
@@ -1103,19 +1110,6 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
       document.getElementById('flightTime').setAttribute('min', localISO);
     })();
 
-    // 生成二维码（指向当前页面自身）
-    (function initQRCode() {
-      const pageUrl = window.location.origin + window.location.pathname;
-      document.getElementById('qrUrl').textContent = pageUrl;
-      new QRCode(document.getElementById('qrcodeContainer'), {
-        text: pageUrl,
-        width: 180,
-        height: 180,
-        colorDark: '#0d2d5a',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H,
-      });
-    })();
   </script>
 </body>
 </html>
