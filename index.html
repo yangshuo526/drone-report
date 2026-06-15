@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -230,7 +231,7 @@
               name="location"
               required
               rows="2"
-              placeholder="第一行：省/市/县区/乡镇/村&#10;第二行：经度 纬度"
+              placeholder="第一行：省/市/县区/乡镇/街道/村&#10;第二行：经度 纬度"
               class="flex-1 px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400 resize-none leading-relaxed"
               style="min-height: 60px;"
             ></textarea>
@@ -491,11 +492,19 @@
           <!-- 动态渲染 -->
         </div>
         <!-- 底部操作 -->
-        <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+        <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2">
           <span id="recordCount" class="text-sm text-gray-500"></span>
-          <button onclick="clearAllRecords()" class="text-sm text-railred-500 hover:text-railred-600 font-medium transition-colors">
-            清空所有记录
-          </button>
+          <div class="flex items-center gap-3">
+            <button onclick="exportToExcel()" class="text-sm text-railway-700 hover:text-railway-800 font-medium transition-colors flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              导出台账
+            </button>
+            <button onclick="clearAllRecords()" class="text-sm text-railred-500 hover:text-railred-600 font-medium transition-colors">
+              清空所有记录
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -512,6 +521,8 @@
     // ===================== PushPlus 推送配置 =====================
     // 微信搜索公众号「PushPlus推送加」关注后获取 Token
     const PUSHPLUS_TOKEN = '7703bcdbfe8c4186858d96beb49af15c';
+    // 群组编码：填写后可同时推送给加入该群组的所有人（留空则仅推送给 Token 所有者）
+    const PUSHPLUS_TOPIC = '110526';
     // ============================================================
 
     /**
@@ -791,6 +802,94 @@
     }
 
     /**
+     * 导出报备台账为 Excel 文件（.xlsx）
+     * 使用 SheetJS 库生成格式化的 Excel 工作簿
+     */
+    function exportToExcel() {
+      const reports = getReports();
+      if (reports.length === 0) {
+        alert('暂无报备记录，无法导出台账');
+        return;
+      }
+
+      // 表头
+      const headers = [
+        '序号', '姓名', '联系方式', '身份证号', '所在线路',
+        '无人机型号/编号', '飞行时间', '地点', '用途',
+        '作业人员资质', '是否知悉', '特殊情况备注', '报备时间'
+      ];
+
+      // 构建数据行
+      const rows = reports.map((r, i) => [
+        i + 1,
+        r.name || '',
+        r.phone || '',
+        r.idCard || '',
+        r.line || '--',
+        r.droneModel || '',
+        formatDateTime(r.flightTime),
+        (r.location || '').replace(/\n/g, ' | '),
+        r.purpose || '',
+        r.certification || '',
+        r.acknowledge || '',
+        r.remarks || '',
+        formatDateTime(r.submittedAt)
+      ]);
+
+      // 标题信息
+      const titleRow = ['中国铁路南昌局集团有限公司鹰潭工务段 — 无人机飞行报备台账'];
+      const blankRow = [''];
+      const exportDateRow = ['导出时间：' + new Date().toLocaleString('zh-CN', { hour12: false })];
+
+      // 组装工作表数据：[标题行, 空行, 导出时间, 空行, 表头, ...数据行]
+      const sheetData = [
+        titleRow,
+        blankRow,
+        exportDateRow,
+        blankRow,
+        headers,
+        ...rows
+      ];
+
+      // 创建工作簿和工作表
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // 设置列宽
+      ws['!cols'] = [
+        { wch: 6 },   // 序号
+        { wch: 10 },  // 姓名
+        { wch: 14 },  // 联系方式
+        { wch: 20 },  // 身份证号
+        { wch: 12 },  // 所在线路
+        { wch: 20 },  // 无人机型号/编号
+        { wch: 18 },  // 飞行时间
+        { wch: 36 },  // 地点
+        { wch: 10 },  // 用途
+        { wch: 20 },  // 作业人员资质
+        { wch: 10 },  // 是否知悉
+        { wch: 28 },  // 特殊情况备注
+        { wch: 18 },  // 报备时间
+      ];
+
+      // 合并标题行（A1 到 M1）
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
+      ];
+
+      // 添加工作表
+      XLSX.utils.book_append_sheet(wb, ws, '报备台账');
+
+      // 生成文件名
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const filename = `无人机飞行报备台账_${dateStr}.xlsx`;
+
+      // 触发下载
+      XLSX.writeFile(wb, filename);
+    }
+
+    /**
      * 通过 PushPlus 推送报备通知到微信
      * @param {Object} report - 报备数据
      */
@@ -838,6 +937,7 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
             title: title,
             content: content,
             template: 'markdown',
+            topic: PUSHPLUS_TOPIC || undefined,
           }),
         });
         const result = await resp.json();
@@ -899,8 +999,8 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
           const { latitude, longitude } = position.coords;
           const coordLine = `经度:${longitude.toFixed(6)} 纬度:${latitude.toFixed(6)}`;
           try {
-            // 使用高德地图逆地理编码API
-            const resp = await fetch(`https://restapi.amap.com/v3/geocode/regeo?key=2e43e4e7e2237c963d50fb2e2f4e7b1c&location=${longitude},${latitude}&extensions=base`);
+            // 使用高德地图逆地理编码API（extensions=all 获取街道级详细地址）
+            const resp = await fetch(`https://restapi.amap.com/v3/geocode/regeo?key=2e43e4e7e2237c963d50fb2e2f4e7b1c&location=${longitude},${latitude}&extensions=all`);
             const data = await resp.json();
             if (data.status === '1' && data.regeocode) {
               const addr = data.regeocode.addressComponent;
@@ -908,11 +1008,19 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
               const city = addr.city || '';
               const district = addr.district || '';
               const township = addr.township || '';
-              // neighborhood 包含社区/村级别信息
+              // street + streetNumber：街道和门牌号
+              const street = (addr.street && addr.street.name) ? addr.street.name : '';
+              const streetNum = addr.streetNumber || '';
+              const streetFull = street + (streetNum ? streetNum : '');
+              // neighborhood：社区/村
               const neighborhood = (addr.neighborhood && addr.neighborhood.name) ? addr.neighborhood.name : '';
-              const addressLine = `${province}${city}${district}${township}${neighborhood}`;
+              // building：建筑物名（如xx大厦、xx小区）
+              const building = (addr.building && addr.building.name) ? addr.building.name : '';
+              // 组装详细地址：省/市/区/乡镇/街道/门牌号/村/建筑物
+              const parts = [province, city, district, township, streetFull, neighborhood, building].filter(p => p);
+              const addressLine = parts.join('');
               locationInput.value = `${addressLine}\n${coordLine}`;
-              hintEl.textContent = '✓ 已获取位置信息';
+              hintEl.textContent = '✓ 已获取详细位置（可手动修改）';
               hintEl.classList.remove('hidden');
               setTimeout(() => hintEl.classList.add('hidden'), 3000);
             } else {
