@@ -159,20 +159,37 @@
           </select>
         </div>
 
-        <!-- 无人机型号/编号 -->
+        <!-- 无人机型号 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1.5">
-            无人机型号/编号 <span class="text-railred-500">*</span>
+            无人机型号 <span class="text-railred-500">*</span>
           </label>
           <input
             type="text"
             id="droneModel"
             name="droneModel"
             required
-            placeholder="如：大疆 Mavic 3 / SN20240601"
+            placeholder="如：大疆 Mavic 3"
             class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
           />
-          <p id="droneModelError" class="hidden mt-1 text-xs text-railred-500">请输入无人机型号/编号</p>
+          <p id="droneModelError" class="hidden mt-1 text-xs text-railred-500">请输入无人机型号</p>
+        </div>
+
+        <!-- 无人机编号 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            无人机编号 <span class="text-railred-500">*</span>
+          </label>
+          <p class="text-xs text-amber-700 mb-1.5 font-medium">请填写正确SN码</p>
+          <input
+            type="text"
+            id="droneSN"
+            name="droneSN"
+            required
+            placeholder="如：SN20240601"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors placeholder-gray-400"
+          />
+          <p id="droneSNError" class="hidden mt-1 text-xs text-railred-500">请输入无人机编号</p>
         </div>
 
         <!-- 飞行时间 -->
@@ -605,7 +622,7 @@
      */
     function validateForm() {
       let isValid = true;
-      const fields = ['name', 'phone', 'idCard', 'droneModel', 'flightTime', 'locationAddress', 'locationCoords', 'purpose', 'certification', 'acknowledge', 'remarks'];
+      const fields = ['name', 'phone', 'idCard', 'droneModel', 'droneSN', 'flightTime', 'locationAddress', 'locationCoords', 'purpose', 'certification', 'acknowledge', 'remarks'];
 
       // 先隐藏所有错误
       fields.forEach(hideFieldError);
@@ -622,6 +639,9 @@
 
       const droneModel = document.getElementById('droneModel').value.trim();
       if (!droneModel) { showFieldError('droneModel'); isValid = false; }
+
+      const droneSN = document.getElementById('droneSN').value.trim();
+      if (!droneSN) { showFieldError('droneSN'); isValid = false; }
 
       const flightTime = document.getElementById('flightTime').value;
       if (!flightTime) {
@@ -702,6 +722,7 @@
         phone: document.getElementById('phone').value.trim(),
         idCard: document.getElementById('idCard').value.trim(),
         droneModel: document.getElementById('droneModel').value.trim(),
+        droneSN: document.getElementById('droneSN').value.trim(),
         flightTime: document.getElementById('flightTime').value,
         locationAddress: document.getElementById('locationAddress').value.trim(),
         locationCoords: document.getElementById('locationCoords').value.trim(),
@@ -780,6 +801,7 @@
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">身份证号</span><span>${maskIdCard(r.idCard)}</span></div>
               ${r.line ? `<div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">所在线路</span><span>${escapeHtml(r.line)}</span></div>` : ''}
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">无人机型号</span><span>${escapeHtml(r.droneModel)}</span></div>
+              <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">无人机编号</span><span>${escapeHtml(r.droneSN || '')}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">飞行时间</span><span>${formatDateTime(r.flightTime)}</span></div>
               <div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">地点</span><span>${escapeHtml(r.locationAddress || r.location || '')}</span></div>
               ${(r.locationCoords) ? `<div class="flex"><span class="w-20 flex-shrink-0 text-gray-400">经纬度</span><span class="text-gray-500">${escapeHtml(r.locationCoords)}</span></div>` : ''}
@@ -852,7 +874,7 @@
     function exportToCSV(reports) {
       const headers = [
         '序号', '姓名', '联系方式', '身份证号', '所在线路',
-        '无人机型号/编号', '飞行时间', '地点（省/市/县区/乡镇/村）', '经纬度', '用途',
+        '无人机型号', '无人机编号', '飞行时间', '地点（省/市/县区/乡镇/村）', '经纬度', '用途',
         '作业人员资质', '是否知悉', '特殊情况备注', '报备时间'
       ];
       const rows = reports.map((r, i) => [
@@ -862,6 +884,7 @@
         r.idCard || '',
         r.line || '--',
         r.droneModel || '',
+        r.droneSN || '',
         formatDateTime(r.flightTime),
         r.locationAddress || (r.location || '').split('\n')[0] || '',
         r.locationCoords || (r.location || '').split('\n')[1] || '',
@@ -914,7 +937,7 @@
       // 表头
       const headers = [
         '序号', '姓名', '联系方式', '身份证号', '所在线路',
-        '无人机型号/编号', '飞行时间', '地点（省/市/县区/乡镇/村）', '经纬度', '用途',
+        '无人机型号', '无人机编号', '飞行时间', '地点（省/市/县区/乡镇/村）', '经纬度', '用途',
         '作业人员资质', '是否知悉', '特殊情况备注', '报备时间'
       ];
 
@@ -926,6 +949,7 @@
         r.idCard || '',
         r.line || '--',
         r.droneModel || '',
+        r.droneSN || '',
         formatDateTime(r.flightTime),
         r.locationAddress || (r.location || '').split('\n')[0] || '',
         r.locationCoords || (r.location || '').split('\n')[1] || '',
@@ -962,7 +986,8 @@
         { wch: 14 },  // 联系方式
         { wch: 20 },  // 身份证号
         { wch: 12 },  // 所在线路
-        { wch: 20 },  // 无人机型号/编号
+        { wch: 18 },  // 无人机型号
+        { wch: 18 },  // 无人机编号
         { wch: 18 },  // 飞行时间
         { wch: 30 },  // 地点（省/市/县区/乡镇/村）
         { wch: 22 },  // 经纬度
@@ -973,9 +998,9 @@
         { wch: 18 },  // 报备时间
       ];
 
-      // 合并标题行（A1 到 N1）
+      // 合并标题行（A1 到 O1）
       ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 13 } },
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 14 } },
       ];
 
       // 添加工作表
@@ -1011,7 +1036,9 @@
 
 **身份证号：** ${maskIdCard(report.idCard)}
 
-${lineInfo}**无人机型号/编号：** ${report.droneModel}
+${lineInfo}**无人机型号：** ${report.droneModel}
+
+**无人机编号：** ${report.droneSN}
 
 **飞行时间：** ${formatDateTime(report.flightTime)}
 
