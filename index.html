@@ -180,6 +180,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1.5">
             飞行时间 <span class="text-railred-500">*</span>
           </label>
+          <p class="text-xs text-amber-700 mb-1.5 font-medium">⚠ 请提前12小时报备，禁止随报随飞</p>
           <input
             type="datetime-local"
             id="flightTime"
@@ -188,6 +189,7 @@
             class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-railway-500 focus:border-railway-500 transition-colors text-gray-700"
           />
           <p id="flightTimeError" class="hidden mt-1 text-xs text-railred-500">请选择飞行时间</p>
+          <p id="flightTimeHint" class="hidden mt-1 text-xs text-green-600"></p>
         </div>
 
         <!-- 地点 - 详细地址（省/市/县区/乡镇/村） -->
@@ -559,6 +561,45 @@
     }
 
     /**
+     * 设置飞行时间错误提示文案（支持空值与不足12小时两种提示）
+     * @param {string} message - 错误提示文案
+     */
+    function setFlightTimeErrorText(message) {
+      const errorEl = document.getElementById('flightTimeError');
+      if (errorEl) errorEl.textContent = message;
+    }
+
+    /**
+     * 实时计算并显示飞行时间与当前时间的小时差提示
+     * 便于用户判断是否符合提前12小时报备要求
+     */
+    function updateFlightTimeHint() {
+      const flightTime = document.getElementById('flightTime').value;
+      const hintEl = document.getElementById('flightTimeHint');
+      if (!hintEl) return;
+      if (!flightTime) {
+        hintEl.classList.add('hidden');
+        return;
+      }
+      const now = new Date();
+      const flightDate = new Date(flightTime);
+      const diffHours = (flightDate - now) / (1000 * 60 * 60);
+      hintEl.classList.remove('hidden');
+      // 重置提示颜色类
+      hintEl.classList.remove('text-green-600', 'text-amber-600', 'text-railred-500');
+      if (diffHours <= 0) {
+        hintEl.classList.add('text-railred-500');
+        hintEl.textContent = '⚠ 飞行时间已过，请重新选择';
+      } else if (diffHours < 12) {
+        hintEl.classList.add('text-amber-600');
+        hintEl.textContent = '⚠ 距飞行时间仅 ' + diffHours.toFixed(1) + ' 小时，需提前至少12小时报备';
+      } else {
+        hintEl.classList.add('text-green-600');
+        hintEl.textContent = '✓ 距飞行时间还有 ' + diffHours.toFixed(1) + ' 小时，符合提前报备要求';
+      }
+    }
+
+    /**
      * 表单验证
      * @returns {boolean} 表单是否通过验证
      */
@@ -583,7 +624,21 @@
       if (!droneModel) { showFieldError('droneModel'); isValid = false; }
 
       const flightTime = document.getElementById('flightTime').value;
-      if (!flightTime) { showFieldError('flightTime'); isValid = false; }
+      if (!flightTime) {
+        setFlightTimeErrorText('请选择飞行时间');
+        showFieldError('flightTime');
+        isValid = false;
+      } else {
+        // 校验飞行时间距当前时间是否提前至少12小时（禁止随报随飞）
+        const now = new Date();
+        const flightDate = new Date(flightTime);
+        const diffHours = (flightDate - now) / (1000 * 60 * 60);
+        if (diffHours < 12) {
+          setFlightTimeErrorText('报备时间需提前至少12小时');
+          showFieldError('flightTime');
+          isValid = false;
+        }
+      }
 
       const locationAddress = document.getElementById('locationAddress').value.trim();
       if (!locationAddress) { showFieldError('locationAddress'); isValid = false; }
@@ -1112,6 +1167,10 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
       });
     });
 
+    // 飞行时间实时计算与当前时间的小时差提示（input+change 双重监听兼容各浏览器）
+    document.getElementById('flightTime').addEventListener('input', updateFlightTimeHint);
+    document.getElementById('flightTime').addEventListener('change', updateFlightTimeHint);
+
     // 知悉选项切换时清除错误状态，并显示/隐藏备注
     document.querySelectorAll('input[name="acknowledge"]').forEach(el => {
       el.addEventListener('change', () => {
@@ -1145,11 +1204,17 @@ ${report.remarks ? `\n**特殊情况备注：** ${report.remarks}` : ''}
     // 绑定表单提交
     document.getElementById('reportForm').addEventListener('submit', handleSubmit);
 
-    // 设置飞行时间最小值为当前时间
+    // 表单重置后清除飞行时间实时提示（reset 不触发 input/change 事件）
+    document.getElementById('reportForm').addEventListener('reset', () => {
+      requestAnimationFrame(() => updateFlightTimeHint());
+    });
+
+    // 设置飞行时间最小值为当前时间+12小时（满足提前报备要求，禁止随报随飞）
     (function setMinFlightTime() {
       const now = new Date();
-      const offset = now.getTimezoneOffset() * 60000;
-      const localISO = new Date(now - offset).toISOString().slice(0, 16);
+      const minTime = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+      const offset = minTime.getTimezoneOffset() * 60000;
+      const localISO = new Date(minTime - offset).toISOString().slice(0, 16);
       document.getElementById('flightTime').setAttribute('min', localISO);
     })();
 
